@@ -35,29 +35,12 @@ jobs:
           target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
           test_mode: false
 
-      - name: Get latest commit from upstream
-        id: latest_commit
-        run: |
-          git fetch origin main
-          echo "::set-output name=commit_sha::$(git rev-parse origin/main)"
-
-      - name: Compare commits
-        id: compare_commits
-        uses: juliangruber/merge-commit-action@v1
+      - name: Sync check
+        if: failure()
+        uses: actions-cool/issues-helper@v3
         with:
-          base: main
-          head: ${{ steps.latest_commit.outputs.commit_sha }}
-
-      - name: Trigger Deploy to Halo
-        if: steps.compare_commits.outputs.pull_requests != ''
-        uses: actions/github-script@0.9.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const response = await octokit.actions.createWorkflowDispatch({
-              owner: 'your_repo_owner',
-              repo: 'your_repo_name',
-              workflow_id: 'workflow_id_of_Deploy_to_Halo_workflow',
-              ref: 'main', // or whatever branch your workflow is on
-            });
-            console.log(response);
+          actions: 'create-issue'
+          title: '🚨 同步失败 | Sync Fail'
+          labels: '🚨 Sync Fail'
+          body: |
+            由于上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次
